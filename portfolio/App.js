@@ -72,13 +72,6 @@ const creationShowcase = ({navigation}) => {
     }
   }
 
-  /*const saveCocktail = async (recipes) => {
-    try {
-      await AsyncStorage.setItem('@recipes', JSON.stringify(recipes))
-    } catch (error) {
-      console.log(error)
-    }
-  }*/
 
   const addCocktailHandler = () => {
     navigation.navigate('Add', { addNewCocktail })
