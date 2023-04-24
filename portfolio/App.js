@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { NavigationContainer, useNavigation, useRoute } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack'; 
-import { StatusBar } from 'expo-status-bar';
-import { Button, FlatList, StyleSheet, Text, View, TextInput, Alert } from 'react-native';
+import { FlatList, StyleSheet, View, TextInput } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { Card } from '@rneui/themed';
+import { Card, Button, Text } from '@rneui/themed';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Stack = createStackNavigator();
@@ -16,85 +15,106 @@ const creationShowcase = ({navigation}) => {
     { id: 1,
       name: 'Strawberry Daiquiri', 
       liquor: 'Rum',
-      info: 'A fruity drink',
-      instructions: '1. Get 2 parts rum',
+      info: 'An all time classic for a perfect Summers day',
+      instructions: '1. Add to a blender: 4 cups of frozen strawberries, 5oz of simple syrup, 4 ounces of light rum, and the juice of 1 lime. Blend until completely smooth. 2. Pour into glasses and garnish with fresh strawberries ',
      },
     { 
       id: 2,
       name: 'Gin and Tonic', 
       liquor: 'Gin',
-      info: 'refreshing drink',
-      instructions: 'pog',
+      info: 'A bright and Zesty drink!',
+      instructions: '1. Fill a highball glass with ice, then add 2 ounces of your favorite gin! 2. Pour around 4 ounces of tonic water and gently stir. 3. (Optional) Add some lime wheels or other garnishes',
+  },
+  {
+      id: 3,
+      name: 'Vodka Redbull',
+      liquor: 'Vodka',
+      info: 'Something to keep you going through a night of partying',
+      instructions: '1. Fill a highball glass with ice, then add 2 ounces of your favorite vodka! 2. Pour the Original Red Bull ontop and gently stir',
   },
   ]);
   const [selectedValue, setSelectedValue] = useState('All');
+  const [filteredRecipes, setFilteredRecipes] = useState([]);
 
   const handleSelection = (value) => {
     setSelectedValue(value);
     navigation.setParams({ selectedValue: value });
+    if(value === 'All') {
+      setFilteredRecipes(recipes);
+    } else {
+      const filtered = recipes.filter(recipe => recipe.liquor === value);
+      setFilteredRecipes(filtered);
+    }
   };
 
   useEffect(() => {
     loadCocktails();
   }, [])
   
+  useEffect(() => {
+    if(selectedValue === 'All') {
+      setFilteredRecipes(recipes);
+    } else {
+      const filtered = recipes.filter(recipe => recipe.liquor === selectedValue);
+      setFilteredRecipes(filtered);
+    }
+  }, [recipes, selectedValue])
+
   const loadCocktails = async () => {
     try {
-      const storedCocktais = await AsyncStorage.getItem('@recipes');
-      if (storedCocktais !== null) {
-        setRecipes(JSON.parse(storedCocktais))
+      const storedCocktails = await AsyncStorage.getItem('@recipes');
+      if (storedCocktails !== null) {
+        setRecipes(JSON.parse(storedCocktails));
+        setFilteredRecipes(JSON.parse(storedCocktails));
       }
     } catch (error) {
       console.log(error)
     }
   }
 
-  const saveCocktail = async (recipes) => {
+  /*const saveCocktail = async (recipes) => {
     try {
       await AsyncStorage.setItem('@recipes', JSON.stringify(recipes))
     } catch (error) {
       console.log(error)
     }
-  }
+  }*/
 
   const addCocktailHandler = () => {
-    navigation.navigate('Add Cocktail', { addNewCocktail })
+    navigation.navigate('Add', { addNewCocktail })
   }
 
   const viewCocktailHandler = (recipe) => {
-    navigation.navigate('Cocktail Details', { recipe })
+    navigation.navigate('Details', { recipe })
   }
 
   const addNewCocktail = (newCocktail) => {
     setRecipes((prevRecipes) => [
       ...prevRecipes,
       { id: Math.random().toString(), ...newCocktail },
-    ])
+    ]);
   }
 
-  const deleteCocktail = async (recipeId) => {
-    Alert.alert(
-      'Delete Cocktail',
-      'Do you want to delete this cocktail?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-        {
-          text: 'Ok',
-          onPress: async () => {
-            const updatedCocktail = recipes.filter(recipe => recipe.id !== recipeId)
-            setRecipes(updatedCocktail)
-            await saveCocktail(updatedCocktail)
-          }
-        }
-      ]
-    )
 
-  }
+
+  const renderItem = ({ item }) => (
+    <Card containerStyle={styles.container}>
+      <Card.Title style={styles.cardTitle}>{item.name}</Card.Title>
+      <Card.Divider/>
+      <Text style={styles.cardDescription}>{item.info}</Text>
+      <Button
+      buttonStyle={{
+        backgroundColor: 'rgba(249,101,116,1)',
+      }}
+      title="View Cocktail Recipe"
+      onPress={() => viewCocktailHandler(item)}
+      />
+    </Card>
+  );
+
   return (
     <View>
+      <Text>Filter Main Ingredient</Text>
       <View style={styles.dropdown}>
         <Picker
           selectedValue={selectedValue}
@@ -105,16 +125,25 @@ const creationShowcase = ({navigation}) => {
           <Picker.Item label="Rum" value="Rum" />
           <Picker.Item label="Tequila" value="Tequila" />
         </Picker>
+      </View> 
+      <View style={styles.container}>
+        <Text style={styles.heading}>Cocktail Showcase</Text>
+        <Button 
+          buttonStyle={{
+            backgroundColor: 'rgba(255, 203, 173, 1)',
+          }}
+          title="Create new Cocktail!" 
+          onPress={addCocktailHandler}/>
+        <FlatList
+        data={recipes.filter(recipe => selectedValue === 'All' || recipe.liquor === selectedValue)}
+        keyExtractor={(recipe) => recipe.id}
+        renderItem={renderItem}
+        />
       </View>
-      <Button title="Go to Recipe Detail"
-        onPress={() => 
-          navigation.navigate('Details', { name: 'Strawberry Daiquiri' })} />
-      <Button title="Add a Recipe"
-        onPress={() => 
-          navigation.navigate('Add')} />
     </View>
   )
 }
+
 
 const creationDetail = ({navigation, route}) => {
   const { recipe } = route.params
@@ -128,12 +157,16 @@ const creationDetail = ({navigation, route}) => {
       <Card containerStyle={styleCard}>
         <Card.Title>{recipe.name}</Card.Title>
         <Card.Divider/>
-        <Text style={styles.liquor}>Drink contains {recipe.liquor}</Text>
-        <Card.Divider/>
         <Text style={styles.info}>{recipe.info}</Text>
+        <Card.Divider/>
         <Text style={styles.instructions}>{recipe.instructions}</Text>
       </Card>
-      <Button title="Return to Showcase!" onPress={goBackHandler}/>
+      <Button 
+        buttonStyle={{
+          backgroundColor: 'rgba(0, 188, 163, 1)',
+        }}
+        title="Return to Showcase!" 
+        onPress={goBackHandler}/>
     </View>
   )
 }
@@ -145,13 +178,13 @@ const addCreation = ({navigation, route}) => {
   const [instructions, setInstructions] = useState('');
 
   const addRecipeHandler = () => {
-    const newRecipe = {
+    const newCocktail = {
       name: name,
       liquor: liquor,
       info: info,
       instructions: instructions
     };
-    route.params.addNewRecipe(newRecipe)
+    route.params.addNewCocktail(newCocktail)
     navigation.goBack()
   }
 
@@ -160,7 +193,7 @@ const addCreation = ({navigation, route}) => {
       <Text>Add a new Cocktail!</Text>
       <TextInput 
         style={{ borderWidth: 1, borderColor: 'grey', padding: 10, margin: 10, width: 300 }}
-        placeholder="Recipe Name"
+        placeholder="Cocktail Name"
         value={name}
         onChangeText={text => setName(text)}/>
       <TextInput 
@@ -170,20 +203,20 @@ const addCreation = ({navigation, route}) => {
         onChangeText={text => setLiquor(text)}/>
       <TextInput
         style={{ borderWidth: 1, borderColor: 'gray', padding: 10, margin: 10, width: 300 }}
-        placeholder="Recipe Description"
+        placeholder="Cocktail Description"
         value={info}
         onChangeText={text => setInfo(text)}
       />
       <TextInput
         style={{ borderWidth: 1, borderColor: 'gray', padding: 10, margin: 10, width: 300, height: 200 }}
-        placeholder="Recipe Instructions"
+        placeholder="Cocktail Instructions"
         multiline={true}
         numberOfLines={10}
         value={instructions}
         onChangeText={text => setInstructions(text)}
       />
-      <Button title="Add New Recipe!" onPress={addRecipeHandler} />
-      <Button title="Return to Showcase!" onPress={() => navigation.goBack()} />
+      <Button color="secondary" title="Add New Cocktail!" onPress={addRecipeHandler} />
+      <Button color ="warning" title="Return to Showcase!" onPress={() => navigation.goBack()} />
     </View>
   )
 }
@@ -192,7 +225,7 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Showcase">
-        <Stack.Screen name="Showcase" component={creationShowcase} options={{ title: 'Cocktail Recipes'}}/>
+        <Stack.Screen name="Showcase" component={creationShowcase} options={{ title: 'Cocktail Showcase'}}/>
         <Stack.Screen name="Details" component={creationDetail} options={{ title: 'Recipe Details'}}/>
         <Stack.Screen name="Add" component={addCreation} options={{ title: 'Add a Recipe'}}/>
       </Stack.Navigator>
@@ -208,11 +241,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10
   },
   dropdown: {
-    marginHorizontal: 10,
+    marginHorizontal: 20,
     marginVertical: 20,
-    borderColor: 'gray',
+    borderColor: '#fff',
     borderWidth: 1,
     borderRadius: 5,
     overflow: 'hidden',
@@ -230,6 +264,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   },
+  heading: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+
 });
 
 const styleCard = {
